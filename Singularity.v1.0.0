@@ -1,0 +1,51 @@
+Bootstrap: docker
+From: ubuntu:18.04
+
+
+%setup
+  mkdir -p ${SINGULARITY_ROOTFS}/opt/mavoltl
+
+
+%files
+  NIfTI_20140122               /opt/mavoltl
+  bin                          /opt/mavoltl
+  src                          /opt/mavoltl
+  README.md                    /opt/mavoltl
+  test_sing_container.sh       /opt/mavoltl
+  
+ 
+%labels
+  Maintainer baxter.rogers@vanderbilt.edu
+
+
+%post
+  apt-get update
+  apt-get install -y wget unzip zip xvfb ghostscript openjdk-8-jre imagemagick
+  
+  # Fix imagemagick policy to allow PDF output. See https://usn.ubuntu.com/3785-1/
+  sed -i 's/rights="none" pattern="PDF"/rights="read | write" pattern="PDF"/' \
+    /etc/ImageMagick-6/policy.xml
+  
+  # Download the Matlab Compiled Runtime installer, install, clean up
+  mkdir /MCR
+  wget -nv -P /MCR http://ssd.mathworks.com/supportfiles/downloads/R2019b/Release/2/deployment_files/installer/complete/glnxa64/MATLAB_Runtime_R2019b_Update_2_glnxa64.zip 
+  unzip /MCR/MATLAB_Runtime_R2019b_Update_2_glnxa64.zip -d /MCR/MCR_installer
+  /MCR/MCR_installer/install -mode silent -agreeToLicense yes
+  rm -r /MCR/MCR_installer /MCR/MATLAB_Runtime_R2019b_Update_2_glnxa64.zip
+  rmdir /MCR
+
+  # Create input/output directories for binding
+  mkdir /INPUTS && mkdir /OUTPUTS
+
+
+%environment
+  # We don't need to set the Matlab library path here, because Matlab's
+  # auto-generated run_??.sh script does it for us.
+
+
+%runscript
+  xvfb-run --server-num=$(($$ + 99)) \
+  --server-args='-screen 0 1600x1200x24 -ac +extension GLX' \
+  bash /opt/mavoltl/bin/run_mavoltl.sh \
+  /usr/local/MATLAB/MATLAB_Runtime/v97 "$@"
+

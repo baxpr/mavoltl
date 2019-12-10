@@ -1,0 +1,7 @@
+INPUTS*
+OUTPUTS*
+local*
+*.simg
+*~
+bin/mavoltl_mcr
+.DS_Store
